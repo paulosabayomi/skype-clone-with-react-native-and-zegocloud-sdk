@@ -6,113 +6,208 @@
  */
 
 import React from 'react';
-import type {PropsWithChildren} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
+  Platform,
   StatusBar,
-  StyleSheet,
   Text,
-  useColorScheme,
   View,
+  useColorScheme,
 } from 'react-native';
+import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
+import HomeRoute from './components/screens/Home';
+import LoginRoute from './components/screens/Login';
+import { useAppDispatch, useAppSelector } from './shared/hooks';
+import CallPadRoute from './components/screens/CallPad';
+import ContactRoute from './components/screens/Contact';
+import useColorThemed from './themed/useColorThemed';
+import CallPageRoute from './components/screens/CallPage';
+import CallPrepPageRoute from './components/screens/CallPrepPage';
+import JoinWithLinkPrepRoute from './components/screens/JoinWithLinkPrep';
+import ChatPageRoute from './components/screens/ChatPage';
+import NewChatPageRoute from './components/screens/NewChatPage';
+import NotificationPageRoute from './components/screens/NotificationPage';
+import OptionsPanelRoute from './components/screens/OptionsPanel';
+import SettingsPageRoute from './components/screens/SettingsPage';
+import AppearancePageRoute from './components/screens/AppearancePage';
+import storage, { color_mode_db_name } from './shared/storage';
+import { updateColorMode } from './shared/rdx-slice';
+import { TColorMode } from './shared/types';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+const Stack = createStackNavigator();
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const scheme = useColorScheme() || 'light';
+  const user_details = useAppSelector(state => state.main.user_details)
+  const theme = useColorThemed()
+  const color_mode = useAppSelector(state => state.main.color_mode)
+  const dispatch = useAppDispatch()
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  const getBarStyle = React.useCallback((color_mode: TColorMode) => {
+    if (color_mode == 'light') {
+      return 'dark-content'
+    }else if (color_mode == 'dark') {
+      return 'light-content'
+    }else{
+      return getBarStyle(scheme)
+    }
+  }, [])
+
+  const set_color = React.useCallback(() => {
+    storage.load({key: color_mode_db_name})
+    .then((data) => {
+      dispatch(updateColorMode(data))
+    })
+    .catch(err => {})
+  }, [])
+
+  React.useLayoutEffect(() => {
+    set_color()
+  }, [])
+  
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <>
       <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+        barStyle={getBarStyle(color_mode)}
+        // backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Stack.Navigator initialRouteName={user_details != undefined ? 'Home' : 'Login'}>
+        <Stack.Screen name="Home" 
+          options={{
+            headerShown: false
+          }} 
+          component={HomeRoute} />
+        <Stack.Screen name="Login" 
+          component={LoginRoute} 
+          options={{
+            headerShown: false,
+          }} />
+        <Stack.Screen name="ChatPage" 
+          component={ChatPageRoute} 
+          options={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: theme.inverse_white
+            },
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerShadowVisible: false,
+          }} />
+        <Stack.Screen name="SettingsPage" 
+          component={SettingsPageRoute} 
+          options={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: theme.inverse_white
+            },
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            title: 'Settings',
+            headerBackTitleVisible: false,
+          }} />
+        <Stack.Screen name="AppearancePage" 
+          component={AppearancePageRoute} 
+          options={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: theme.inverse_white
+            },
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            title: 'Appearance',
+            headerBackTitleVisible: false,
+          }} />
+        <Stack.Screen name="NewChatPage" 
+          component={NewChatPageRoute} 
+          options={{
+            headerShown: false,
+            gestureDirection: 'vertical',
+            cardStyleInterpolator: Platform.OS == 'ios' ? CardStyleInterpolators.forVerticalIOS : CardStyleInterpolators.forFadeFromBottomAndroid
+          }} />
+        <Stack.Screen name="NotificationPage" 
+          component={NotificationPageRoute} 
+          options={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: theme.inverse_white
+            },
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerTitle: 'Notifications',
+            gestureDirection: 'vertical',
+            cardStyleInterpolator: Platform.OS == 'ios' ? CardStyleInterpolators.forVerticalIOS : CardStyleInterpolators.forFadeFromBottomAndroid
+          }} />
+        <Stack.Screen name="OptionsPanel" 
+          component={OptionsPanelRoute} 
+          options={{
+            headerShown: true,
+            headerTitleStyle: {
+              color: theme.inverse_white
+            },
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerTitle: '',
+            gestureDirection: 'vertical',
+            cardStyleInterpolator: Platform.OS == 'ios' ? CardStyleInterpolators.forVerticalIOS : CardStyleInterpolators.forFadeFromBottomAndroid
+          }} />
+        <Stack.Screen name="CallPrepPage" 
+          component={CallPrepPageRoute} 
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerShadowVisible: false,
+            headerBackTitleVisible: false,
+            headerTitleStyle: {display: 'none'}
+          }} />
+        <Stack.Screen name="JoinWithLinkPrep" 
+          component={JoinWithLinkPrepRoute} 
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerShadowVisible: false,
+            headerBackTitleVisible: false,
+            headerTitleStyle: {display: 'none'}
+          }} />
+        <Stack.Screen name="CallPage" 
+          component={CallPageRoute} 
+          options={{
+            headerTitleStyle: {
+              display: 'none'
+            },
+            headerShown: false,
+            headerShadowVisible: false
+          }} />
+        <Stack.Screen name="Contact" 
+          component={ContactRoute} 
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: theme.main_bg_01
+            },
+            headerTitleStyle: {display: 'none'},
+            headerShadowVisible: false,
+          }} />
+        <Stack.Screen name="CallPad" 
+          component={CallPadRoute} 
+          options={{
+            headerShown: false,
+            gestureDirection: 'vertical',
+            cardStyleInterpolator: Platform.OS == 'ios' ? CardStyleInterpolators.forVerticalIOS : CardStyleInterpolators.forFadeFromBottomAndroid
+          }} />
+      </Stack.Navigator>
+      
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
